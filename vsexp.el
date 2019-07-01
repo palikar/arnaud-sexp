@@ -14,7 +14,7 @@
 ;; Version: 1.1
 ;; Package-Requires: ((smartparens))
 ;; Keywords: sexp, kill, mark, vim
-;; URL: https://github.com/palikar/arnaud-sexp
+;; URL: https://github.com/palikar/vsexp
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -35,148 +35,138 @@
 
 
 (defun vsexp-mark-sexp ()
-	"Mark the content inside of the current sexp."
-	(interactive)
-	(if (use-region-p)
-			(progn
-				(sp-backward-up-sexp)
-				(sp-backward-up-sexp)
-				(forward-char 1)
-				(set-mark-command nil)
-				(sp-up-sexp)
-				(backward-char 1))
-		(progn
-			(sp-backward-up-sexp)
-			(forward-char 1)
-			(set-mark-command nil)
-			(sp-up-sexp)
-			(backward-char 1))))
+  "Mark the content inside of the current sexp."
+  (interactive)
+  (if (use-region-p)
+      (progn
+	(sp-backward-up-sexp)
+	(sp-backward-up-sexp)
+	(forward-char 1)
+	(set-mark-command nil)
+	(sp-up-sexp)
+	(backward-char 1))
+    (progn
+      (sp-backward-up-sexp)
+      (forward-char 1)
+      (set-mark-command nil)
+      (sp-up-sexp)
+      (backward-char 1))))
 
 (defun vsexp-mark-sexp-whole ()
-	"Mark the things inside of the current sexp."
-	(interactive)
-	(sp-backward-up-sexp)
-	(set-mark-command nil)
-	(forward-sexp))
+  "Mark the content outside of the current sexp."
+  (interactive)
+  (sp-backward-up-sexp)
+  (set-mark-command nil)
+  (forward-sexp))
 
 (defun vsexp-kill-save-sexp ()
-	"Kill the things inside of the current sexp."
-	(interactive)
-	(sp-backward-up-sexp)
-	(forward-char 1)
-	(set-mark-command nil)
-	(sp-up-sexp)
-	(backward-char 1)
-	(kill-ring-save (region-beginning) (region-end))
-	(deactivate-mark))
+  "Kill the content inside of the current sexp."
+  (interactive)
+  (sp-backward-up-sexp)
+  (forward-char 1)
+  (set-mark-command nil)
+  (sp-up-sexp)
+  (backward-char 1)
+  (kill-ring-save (region-beginning) (region-end))
+  (deactivate-mark))
 
 (defun vsexp-kill-save-sexp-whole ()
-	"Kill the current sexp."
-	(interactive)
-	(sp-backward-up-sexp)
-	(set-mark-command nil)
-	(sp-up-sexp)
-	(kill-ring-save (region-beginning) (region-end))
-	(deactivate-mark))
+  "Kill the content outside of the current sexp."
+  (interactive)
+  (sp-backward-up-sexp)
+  (set-mark-command nil)
+  (sp-up-sexp)
+  (kill-ring-save (region-beginning) (region-end))
+  (deactivate-mark))
 
 (defun vsexp-kill-sexp ()
-	"Kill the things inside of the current sexp."
-	(interactive)
-	(sp-backward-up-sexp)
-	(forward-char 1)
-	(set-mark-command nil)
-	(sp-up-sexp)
-	(backward-char 1)
-	(kill-region (region-beginning) (region-end)))
+  "Kill the content inside of the current sexp."
+  (interactive)
+  (sp-backward-up-sexp)
+  (forward-char 1)
+  (set-mark-command nil)
+  (sp-up-sexp)
+  (backward-char 1)
+  (kill-region (region-beginning) (region-end)))
 
 (defun vsexp-kill-sexp-whole ()
-	"Mark the things inside of the current sexp."
-	(interactive)
-	(sp-backward-up-sexp)
-	(set-mark-command nil)
-	(forward-sexp)
-	(kill-region (region-beginning) (region-end)))
+  "Mark the content inside of the current sexp."
+  (interactive)
+  (sp-backward-up-sexp)
+  (set-mark-command nil)
+  (forward-sexp)
+  (kill-region (region-beginning) (region-end)))
 
 
 (defvar vsexp-bracket-map
-	'(("<" . ">")
-		("(" . ")")
-		("[" . "]")
-		("{" . "}"))
-	"Pair of symbols that are considered a bracket-pair.
+  '(("<" . ">")
+    ("(" . ")")
+    ("[" . "]")
+    ("{" . "}"))
+  "Pair of symbols that are considered a bracket-pair.
 Will fallback to this map if teh sexp is not in the current symbol map")
 
 
 (defun vsexp--get-matching-bracket (bracket-char-string)
-	"Find the other bracket of BRACKET-CHAR-STRING."
-	(interactive)
-	(let (($syntableValue (aref (syntax-table) (string-to-char bracket-char-string))))
-		(if (or (eq (car $syntableValue ) 4)
-						(eq (car $syntableValue ) 5))
-				(char-to-string (cdr $syntableValue))
-			(progn
-				(dolist (braces bracket-map)
-					(cond
-					 ((string= (car braces) bracket-char-string) (return (cdr braces)))
-					 ((string= (cdr braces) bracket-char-string) (return (car braces)))))))))
+  "Find the other bracket of BRACKET-CHAR-STRING."
+  (interactive)
+  (let (($syntableValue (aref (syntax-table) (string-to-char bracket-char-string))))
+    (if (or (eq (car $syntableValue ) 4)
+	    (eq (car $syntableValue ) 5))
+	(char-to-string (cdr $syntableValue))
+      (progn
+	(dolist (braces vsexp-bracket-map)
+	  (cond
+	   ((string= (car braces) bracket-char-string) (return (cdr braces)))
+	   ((string= (cdr braces) bracket-char-string) (return (car braces)))))))))
 
 (defun vsexp--back-to-brace (char &optional forward)
   "Go back to CHAR.
 If FORWARD is not nil, the direction is reversed"
-	(let* ((other-char (vsexp--get-matching-bracket char))
-				 (count 0)
-				 (current (char-to-string  (char-after))))
-		(while (or (> count 0) (not (string= current char)))
-			(when (string= current other-char)
-				(setq count (+ count 1)))
-			(when (string= current char)
-				(setq count (- count 1)))
-			(if forward (forward-char 1) (backward-char 1))
-			(while (nth 3 (syntax-ppss))
-				(if forward (forward-char 1) (backward-char 1)))
-			(setq current (char-to-string  (char-after))))))
-
-
-
-
+  (let* ((other-char (vsexp--get-matching-bracket char))
+	 (count 0)
+	 (current (char-to-string  (char-after))))
+    (while (or (> count 0) (not (string= current char)))
+      (when (string= current other-char)
+	(setq count (+ count 1)))
+      (when (string= current char)
+	(setq count (- count 1)))
+      (if forward (forward-char 1) (backward-char 1))
+      (while (nth 3 (syntax-ppss))
+	(if forward (forward-char 1) (backward-char 1)))
+      (setq current (char-to-string  (char-after))))))
 
 (defun vsexp--mark (&optional inside)
-	"Mark inside the thing.
+  "Mark inside the thing.
 If INSIDE is not nil, the active region will be around the thing"
-	(let* ((char (char-to-string (read-key "Mark inside:")))
-				 (other-char (vsexp--get-matching-bracket char)))
-		(if other-char
-				(progn
-					(backward-char 1)
-					(vsexp--back-to-brace char nil)
-					(when inside (forward-char 1))
-					(set-mark-command nil)
-					(forward-char 1)
-					(vsexp--back-to-brace other-char t)
-					(unless inside (forward-char 1)))
-			(progn
-				(search-backward char nil nil 1)
-				(when inside (forward-char 1))
-				(set-mark-command nil)
-				(forward-char 1)
-				(search-forward char nil nil 1)
-				(when inside (backward-char 1))))))
+  (let* ((char (char-to-string (read-key "Mark:")))
+	 (other-char (vsexp--get-matching-bracket char)))
+    (if other-char
+	(progn
+	  (backward-char 1)
+	  (vsexp--back-to-brace char nil)
+	  (when inside (forward-char 1))
+	  (set-mark-command nil)
+	  (forward-char 1)
+	  (vsexp--back-to-brace other-char t)
+	  (unless inside (forward-char 1)))
+      (progn
+	(search-backward char nil nil 1)
+	(when inside (forward-char 1))
+	(set-mark-command nil)
+	(forward-char 1)
+	(search-forward char nil nil 1)
+	(when inside (backward-char 1))))))
 
 (defun vsexp-mark-around ()
-	"Mark around char."
-	(interactive)
-	(vsexp--mark nil))
+  "Mark around prompted char."
+  (interactive)
+  (vsexp--mark nil))
 
 (defun vsexp-mark-inside ()
-	"Mark inside char."
-	(interactive)
-	(vsexp--mark t))
+  "Mark inside prompted char."
+  (interactive)
+  (vsexp--mark t))
 
-
-(provide 'vsexp-sexp)
+(provide 'vsexp)
 ;;; vsexp.el ends here
-
-
-
-
-(this is text"{"this is more} this is nothing )
