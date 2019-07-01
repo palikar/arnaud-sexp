@@ -123,19 +123,20 @@ Will fallback to this map if teh sexp is not in the current symbol map")
 (defun vsexp--back-to-brace (char &optional forward)
   "Go back to CHAR.
 If FORWARD is not nil, the direction is reversed"
-	
 	(let* ((other-char (vsexp--get-matching-bracket char))
 				 (count 0)
 				 (current (char-to-string  (char-after))))
 		(while (or (> count 0) (not (string= current char)))
-
+			(when (string= current other-char)
+				(setq count (+ count 1)))
+			(when (string= current char)
+				(setq count (- count 1)))
 			(if forward (forward-char 1) (backward-char 1))
-			(while (nth 3 (syntax-ppss)) ((if forward (forward-char 1) (backward-char 1))))
+			(while (nth 3 (syntax-ppss))
+				(if forward (forward-char 1) (backward-char 1)))
+			(setq current (char-to-string  (char-after))))))
 
-			(setq current (char-to-string  (char-after)))
-			
-			(when (string= current other-char) (setq count (+ count 1)))
-			(when (string= current char) (setq count (- count 1))))))
+
 
 
 
@@ -146,25 +147,20 @@ If INSIDE is not nil, the active region will be around the thing"
 				 (other-char (vsexp--get-matching-bracket char)))
 		(if other-char
 				(progn
-					
-					(vsexp--back-to char nil)
+					(backward-char 1)
+					(vsexp--back-to-brace char nil)
 					(when inside (forward-char 1))
-					
-					;; (set-mark-command nil)
-					(vsexp--back-to other-char t)
-					;; (unless inside (forward-char 1))
-					
-					)
+					(set-mark-command nil)
+					(forward-char 1)
+					(vsexp--back-to-brace other-char t)
+					(unless inside (forward-char 1)))
 			(progn
-				
 				(search-backward char nil nil 1)
 				(when inside (forward-char 1))
 				(set-mark-command nil)
 				(forward-char 1)
 				(search-forward char nil nil 1)
-				(when inside (backward-char 1)))
-
-			)))
+				(when inside (backward-char 1))))))
 
 (defun vsexp-mark-around ()
 	"Mark around char."
